@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Zuma Mobile</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* MENU */
+    #menu {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: url('https://lqy3lriiybxcejon.public.blob.vercel-storage.com/402142de-1706-460f-aa7e-177eca0ce624/backgroundmenu-SV40ImaaveVJ2aV2x4gJQ2m2HkRnMx.png?2n9m') no-repeat center center;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #startButton {
+      cursor: pointer;
+      width: 200px;
+      height: 60px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      border: 2px solid white;
+      margin-bottom: 20px;
+    }
+
+    #rules {
+      background: rgba(0,0,0,0.5);
+      color: white;
+      padding: 15px;
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+      border-radius: 10px;
+    }
+
+    /* CANVAS GAME */
+    #gameCanvas {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MENU -->
+  <div id="menu">
+    <button id="startButton">Start</button>
+    <div id="rules">
+      <h2>Rules</h2>
+      <p>Aim with the mouse or touch, shoot balls. Match 3+ same color to clear. Don’t let balls reach the end!</p>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const menu = document.getElementById('menu');
+    const startButton = document.getElementById('startButton');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // ---- AUTO SCALE 9:16 ----
+    function resizeCanvas() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      let gameHeight = h;
+      let gameWidth = (h / 16) * 9;
+      if (gameWidth > w) {
+        gameWidth = w;
+        gameHeight = (w / 9) * 16;
+      }
+      canvas.width = gameWidth;
+      canvas.height = gameHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // ---- LOAD BACKGROUND GAMEPLAY ----
+    const bgGameplay = new Image();
+    bgGameplay.src = 'https://lqy3lriiybxcejon.public.blob.vercel-storage.com/402142de-1706-460f-aa7e-177eca0ce624/backgroundgameplay-v9Xoj3LAom9TNaCpQyXXfX3QKTvGyH.jpg?GzER';
+
+    // ---- GAME VARIABLES ----
+    let frog = { x: canvas.width / 2, y: canvas.height / 2, angle: 0 };
+    let balls = [];
+    let path = [];
+    let shootingBall = null;
+    const ballRadius = 15;
+    const pathSpeed = 1;
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    let skullPos;
+    let gameOver = false;
+    let gameStarted = false;
+    let mouseX = canvas.width/2, mouseY = canvas.height/2;
+
+    // ---- LOAD IMAGES ----
+    const frogImg = new Image();
+    frogImg.src = 'https://s26.postimg.cc/5u53n06qh/zumafrog.png';
+    const skullImg = new Image();
+    skullImg.src = 'https://s26.postimg.cc/terp4y3ft/skull.jpg';
+    const ballImgs = {
+      red: new Image(),
+      blue: new Image(),
+      green: new Image(),
+      yellow: new Image()
+    };
+    ballImgs.red.src = 'https://s26.postimg.cc/6c165she1/redball.jpg';
+    ballImgs.blue.src = 'https://s26.postimg.cc/xb4khn7ih/blueball.jpg';
+    ballImgs.green.src = 'https://s26.postimg.cc/fl2vwj1mh/greenball.png';
+    ballImgs.yellow.src = 'https://s26.postimg.cc/if61a18yh/yellowball.png';
+
+    // ---- PATH SPIRAL ----
+    function generatePath() {
+      path = [];
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      let radius = 30;
+      let angle = 0;
+      for (let i = 0; i < 300; i++) {
+        let x = centerX + radius * Math.cos(angle);
+        let y = centerY + radius * Math.sin(angle);
+        path.push({ x, y });
+        radius += 0.7;
+        angle += 0.2;
+      }
+      skullPos = path[path.length - 1];
+    }
+
+    // ---- BALL CLASS ----
+    class Ball {
+      constructor(x, y, color, dir = null) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.dir = dir;
+        this.speed = dir ? 5 : pathSpeed;
+        this.pathIndex = dir ? -1 : 0;
+      }
+      update() {
+        if (this.dir) {
+          this.x += this.dir.x * this.speed;
+          this.y += this.dir.y * this.speed;
+          // check collision insert
+          for (let i = balls.length - 1; i >= 0; i--) {
+            if (Math.hypot(this.x - balls[i].x, this.y - balls[i].y) < 2 * ballRadius) {
+              this.dir = null;
+              this.pathIndex = balls[i].pathIndex;
+              balls.splice(i + 1, 0, this);
+              checkMatches();
+              shootingBall = null;
+              return;
+            }
+          }
+          // out of screen
+          if (this.x<0||this.x>canvas.width||this.y<0||this.y>canvas.height){
+            shootingBall = null;
+          }
+        } else if (this.pathIndex < path.length - 1) {
+          this.pathIndex += this.speed;
+          const idx = Math.floor(this.pathIndex);
+          if (idx < path.length) {
+            this.x = path[idx].x;
+            this.y = path[idx].y;
+          }
+        }
+      }
+      draw() {
+        if (ballImgs[this.color].complete && ballImgs[this.color].naturalWidth > 0) {
+          ctx.drawImage(ballImgs[this.color], this.x - ballRadius, this.y - ballRadius, ballRadius*2, ballRadius*2);
+        } else {
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, ballRadius, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function checkMatches() {
+      for (let i=0; i<balls.length-2; i++) {
+        if (balls[i].color === balls[i+1].color && balls[i].color === balls[i+2].color) {
+          balls.splice(i,3);
+          i--;
+        }
+      }
+    }
+
+    // ---- DRAW FROG ----
+    function updateFrog() {
+      const dx = mouseX - frog.x;
+      const dy = mouseY - frog.y;
+      frog.angle = Math.atan2(dy, dx);
+    }
+    function drawFrog() {
+      ctx.save();
+      ctx.translate(frog.x, frog.y);
+      ctx.rotate(frog.angle);
+      if (frogImg.complete && frogImg.naturalWidth>0) {
+        ctx.drawImage(frogImg, -20, -20, 40, 40);
+      } else {
+        ctx.fillStyle = 'purple';
+        ctx.beginPath();
+        ctx.arc(0,0,20,0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ---- MOUSE / TOUCH ----
+    canvas.addEventListener('mousemove',(e)=>{
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+    });
+    canvas.addEventListener('touchmove',(e)=>{
+      const rect = canvas.getBoundingClientRect();
+      mouseX = e.touches[0].clientX - rect.left;
+      mouseY = e.touches[0].clientY - rect.top;
+    });
+
+    canvas.addEventListener('click', shootBall);
+    canvas.addEventListener('touchstart', shootBall);
+
+    function shootBall(){
+      if(!shootingBall && gameStarted && !gameOver){
+        const angle = frog.angle;
+        shootingBall = new Ball(frog.x, frog.y, colors[Math.floor(Math.random()*colors.length)],{
+          x: Math.cos(angle), y: Math.sin(angle)
+        });
+      }
+    }
+
+    // ---- START GAME ----
+    function startGame() {
+      gameStarted = true;
+      gameOver = false;
+      balls = [];
+      shootingBall = null;
+      generatePath();
+      frog.x = canvas.width/2;
+      frog.y = canvas.height/2;
+
+      // tạo 10 bóng ban đầu
+      for (let i=0; i<10; i++){
+        const b = new Ball(path[0].x,path[0].y, colors[Math.floor(Math.random()*colors.length)]);
+        b.pathIndex = i * 2 * ballRadius / pathSpeed;
+        balls.push(b);
+      }
+
+      menu.style.display='none';
+      canvas.style.display='block';
+      gameLoop();
+    }
+    startButton.addEventListener('click', startGame);
+
+    // ---- GAME LOOP ----
+    function gameLoop() {
+      if(!gameStarted) return;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // background gameplay
+      if(bgGameplay.complete && bgGameplay.naturalWidth>0){
+        ctx.drawImage(bgGameplay,0,0,canvas.width,canvas.height);
+      } else {
+        ctx.fillStyle="#ddd";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+      }
+
+      updateFrog();
+      drawFrog();
+
+      // balls di chuyển trên path
+      balls.forEach(b=>{
+        b.update();
+        b.draw();
+      });
+
+      if(shootingBall){
+        shootingBall.update();
+        shootingBall.draw();
+      }
+
+      // skull target
+      if(skullImg.complete && skullImg.naturalWidth>0){
+        ctx.drawImage(skullImg, skullPos.x-20, skullPos.y-20,40,40);
+      } else {
+        ctx.fillStyle="black";
+        ctx.beginPath();
+        ctx.arc(skullPos.x,skullPos.y,20,0,Math.PI*2);
+        ctx.fill();
+      }
+
+      // check game over
+      if(balls.length>0 && balls[0].pathIndex >= path.length-1){
+        gameOver = true;
+        ctx.fillStyle="red";
+        ctx.font="32px Arial";
+        ctx.fillText("Game Over!", canvas.width/2-100, canvas.height/2);
+        ctx.fillText("Tap to Restart", canvas.width/2-120, canvas.height/2+40);
+
+        canvas.addEventListener('click', ()=>{
+          if(gameOver) startGame();
+        }, {once:true});
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+</body>
+</html>
