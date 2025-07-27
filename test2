@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zuma Mobile Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@farcade/game-sdk@latest/dist/index.min.js"></script>
+    <style>
+      body,
+      #game-container {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        user-select: none;
+        background-color: black;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .box {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+        left: 47%;
+        top: 30%;
+        display: none;
+      }
+      #frog,
+      #skull,
+      .gitlogo,
+      .linkedlogo {
+        width: 100px;
+        height: 100px;
+        border: 1px solid black;
+        border-radius: 50%;
+      }
+      .topSection {
+        display: flex;
+      }
+      #mutedspeaker,
+      #speakeron {
+        font-size: 30px;
+        margin: 0px 20px;
+        text-align: center;
+      }
+      #mutedspeaker:hover,
+      #speakeron:hover {
+        cursor: pointer;
+      }
+      #game-canvas {
+        border: 10px solid #990073;
+        border-radius: 25px;
+        margin: 20px 0px;
+      }
+      .creator {
+        display: flex;
+      }
+      #aboutdiv {
+        border: 10px solid #990073;
+        border-radius: 25px;
+        margin: 20px 0px;
+        width: 540px;
+        color: white;
+        letter-spacing: 0.5px;
+        font-family: arial, sans-serif;
+      }
+      #aboutdiv > h1,
+      h2,
+      ul,
+      a,
+      .abouttext {
+        margin: 20px;
+      }
+      #myname {
+        margin-left: 20px;
+        margin-bottom: 0px;
+      }
+      #linked {
+        width: 150px;
+      }
+      #myname > a {
+        color: white;
+        text-decoration: none;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      button {
+        overflow: hidden;
+        height: 112px;
+        width: 300px;
+        font-family: 'Dekko', sans-serif;
+        font-size: 50px;
+        font-weight: 900;
+        box-shadow: 0 9px #999;
+        background-size: 100%;
+        margin-bottom: 10px;
+        margin-top: 10px;
+        width: 100%;
+        border: 10px solid black;
+        border-radius: 25px;
+        background-image: url("https://s26.postimg.cc/9o512vvyx/backgroundforbuttons.jpg");
+      }
+      button:hover {
+        cursor: pointer;
+        background-image: url("https://s26.postimg.cc/cuzkmklkp/hoverbuttonbackground.jpg");
+      }
+      button:active {
+        background-image: url("https://s26.postimg.cc/cuzkmklkp/hoverbuttonbackground.jpg");
+        border: 7px solid black;
+        border-radius: 25px;
+        transform: translateY(4px);
+      }
+      button:focus {
+        outline: 0;
+      }
+      p {
+        margin: 0 auto;
+        color: white;
+        text-shadow: 1px 1px 2px black, 0 0 25px blue, 0 0 5px darkblue;
+      }
+      .leftSection {
+        background-color: black;
+        width: 21%;
+        display: flex;
+        flex-direction: column;
+      }
+      .rightSection {
+        background-image: url("https://s26.postimg.cc/c6qq3e27t/rulesbackground.jpg");
+        max-width: 21%;
+        background-repeat: no-repeat;
+        background-size: cover;
+        border-right: 10px solid rgb(168, 102, 26);
+        border-radius: 20px;
+        margin: 20px 0px;
+        margin-left: 3px;
+        display: flex;
+        flex-direction: column;
+      }
+      .rightSection > .rules {
+        margin-left: 30px;
+        padding-left: 6px;
+        word-wrap: break-word;
+        padding-right: 1.5%;
+      }
+      .hidden {
+        display: none;
+      }
+      .show {
+        display: block;
+      }
+      .rules h1 {
+        color: #ffbf00;
+        text-shadow: 2px 2px 2px #ffe669;
+      }
+      .header {
+        object-fit: cover;
+        background-size: cover;
+        align-items: center;
+      }
+      .header > img {
+        width: 100%;
+      }
+      .rules > p:last-child {
+        text-align: center;
+        font-size: 40px;
+        font-weight: 900;
+        text-shadow: 1px 1px 2px black, 0 0 25px #fff700, 0 0 5px #898b00;
+      }
+      .leftImage {
+        border: 10px solid black;
+        border-radius: 25px;
+        width: 94%;
+        margin-top: 10px;
+      }
+      #mainfooter {
+        background-image: url("https://s26.postimg.cc/u9jsv0y6x/zumafooterreversed.jpg");
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        background-size: cover;
+        background-repeat: no-repeat;
+      }
+      @media all and (max-width: 900px) {
+        .rightSection > img {
+          height: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <div id="canvasdiv" class="hidden">
+      <canvas id="game-canvas"></canvas>
+    </div>
+    <div id="aboutdiv" class="show">
+      <h1>Zuma Game</h1>
+      <h2>About</h2>
+      <p class="abouttext">This is a Zuma-style game where you shoot colored balls to match three or more of the same color to clear them from the spiral path. Aim the frog with your mouse or touch, and click or tap to shoot. Clear all balls to win!</p>
+      <div id="myname">
+        <a href="https://github.com/SkyisAakash/Zuma">Created by Aakash</a>
+      </div>
+    </div>
+    <div class="topSection">
+      <button id="startGame">Start Game</button>
+      <button id="about">About</button>
+      <button id="pauseButton" class="hidden">Pause</button>
+      <button id="continueButton" class="hidden">Continue</button>
+      <span id="mutedspeaker" class="hidden">🔇</span>
+      <span id="speakeron" class="show">🔊</span>
+    </div>
+    <audio id="audio" loop>
+      <source src="https://rawcdn.githack.com/SkyisAakash/Zuma/185d16abd211142fe3dab763a657611240690da2/tracks/background.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="fireballaudio">
+      <source src="https://rawcdn.githack.com/SkyisAakash/Zuma/185d16abd211142fe3dab763a657611240690da2/tracks/fireball.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+      // MovingObject Class
+      class MovingObject {
+        constructor(options) {
+          this.id = options.id;
+          this.pos = options.pos;
+          this.vel = options.vel;
+          this.radius = options.radius;
+          this.color = options.color;
+          this.game = options.game;
+          this.isWrappable = true;
+          this.speed = options.speed;
+          this.ballname = options.ballname;
+          this.percent = options.percent || 0;
+          this.direction = 1;
+          this.stopTimerStatus = "off";
+          this.sprite = null;
+        }
+
+        draw(scene) {
+          if (!this.sprite) {
+            let ballImage;
+            if (this.color === "green") {
+              ballImage = "greenball";
+            } else if (this.color === "yellow") {
+              ballImage = "yellowball";
+            } else if (this.color === "blue") {
+              ballImage = "blueball";
+            } else if (this.color === "red") {
+              ballImage = "redball";
+            }
+            this.sprite = scene.add.sprite(this.pos[0], this.pos[1], ballImage);
+            this.sprite.setOrigin(0.5);
+            this.sprite.setDisplaySize(this.radius * 2, this.radius * 2);
+          } else {
+            this.sprite.setPosition(this.pos[0], this.pos[1]);
+          }
+        }
+
+        getLineXYatPercent(startPt, endPt, percent) {
+          var dx = endPt.x - startPt.x;
+          var dy = endPt.y - startPt.y;
+          var X = startPt.x + dx * percent;
+          var Y = startPt.y + dy * percent;
+          return { x: X, y: Y };
+        }
+
+        getCircle1XYatPercent(percent) {
+          let positionangle = Math.PI * percent;
+          var centerx = 270;
+          var centery = 480;
+          var X = centerx + Math.cos(positionangle) * 200;
+          var Y = centery + Math.sin(positionangle) * 200;
+          return { x: X, y: Y };
+        }
+
+        getCircle2XYatPercent(percent) {
+          let positionangle = Math.PI * percent;
+          var centerx = 240;
+          var centery = 480;
+          var X = centerx - Math.cos(positionangle) * 170;
+          var Y = centery - Math.sin(positionangle) * 170;
+          return { x: X, y: Y };
+        }
+
+        getCircle3XYatPercent(percent) {
+          let positionangle = Math.PI * percent;
+          var centerx = 270;
+          var centery = 480;
+          var X = centerx + Math.cos(positionangle) * 140;
+          var Y = centery + Math.sin(positionangle) * 140;
+          return { x: X, y: Y };
+        }
+
+        getCircle4XYatPercent(percent) {
+          let positionangle = Math.PI * percent;
+          var centerx = 250;
+          var centery = 480;
+          var X = centerx - Math.cos(positionangle) * 110;
+          var Y = centery - Math.sin(positionangle) * 110;
+          return { x: X, y: Y };
+        }
+
+        getCircle5XYatPercent(percent) {
+          let positionangle = Math.PI * percent;
+          var centerx = 270;
+          var centery = 480;
+          var X = centerx + Math.cos(positionangle) * 80;
+          var Y = centery + Math.sin(positionangle) * 80;
+          return { x: X, y: Y };
+        }
+
+        explodeBalls(ball) {
+          return this.findRangeOfIndex(this.game.balls, ball);
+        }
+
+        findRangeInDirection(direction, balls, ball) {
+          let center = balls.indexOf(ball);
+          let result = [];
+          if (direction === "smaller") {
+            center--;
+            if (center < 0) return result;
+            while (center >= 0 && ball.color === balls[center].color) {
+              result.push(balls[center]);
+              center--;
+            }
+          } else if (direction === "larger") {
+            center++;
+            if (center >= balls.length) return result;
+            while (center < balls.length && ball.color === balls[center].color) {
+              result.push(balls[center]);
+              center++;
+            }
+          }
+          return result;
+        }
+
+        findRangeOfIndex(balls, ball) {
+          let explodeOnLeft = this.findRangeInDirection("smaller", balls, ball);
+          let explodeOnRight = this.findRangeInDirection("larger", balls, ball);
+          let extraBallsToExplode = explodeOnLeft.concat([ball], explodeOnRight);
+          if (extraBallsToExplode.length < 3) return [];
+          return extraBallsToExplode;
+        }
+
+        move(timeDelta) {
+          const NORMAL_FRAME_TIME_DELTA = 1000 / 60;
+          if (this.stopTimer > 1) {
+            this.game.toggleTimerStatus("on");
+          } else if (!this.stopTimer) {
+            this.game.toggleTimerStatus("off");
+          }
+          if (this.ballname === "fireball") {
+            const velocityScale = timeDelta / NORMAL_FRAME_TIME_DELTA,
+              offsetX = this.vel[0] * velocityScale * this.speed,
+              offsetY = this.vel[1] * velocityScale * this.speed;
+            this.pos = [this.pos[0] + offsetX, this.pos[1] + offsetY];
+            let checkExplode;
+            this.game.balls.forEach((ball) => {
+              let distanceX = Math.abs(this.pos[0] - ball.pos[0]);
+              let distanceY = Math.abs(this.pos[1] - ball.pos[1]);
+              let distanceR = Math.sqrt(
+                Math.pow(distanceX, 2) + Math.pow(distanceY, 2)
+              );
+              if (distanceR < 40 && !this.collided) {
+                this.targetball = ball.id;
+                this.game.makenewBall(
+                  this.targetball,
+                  this.pos,
+                  this.color,
+                  ball.percent
+                );
+                checkExplode = this.game.balls[this.game.balls.indexOf(ball) + 1];
+                this.collided = true;
+                this.game.setTargetBall(this.targetball);
+                this.game.remove(this);
+              }
+            });
+            let ballsToExplode = checkExplode
+              ? this.explodeBalls(checkExplode)
+              : [];
+            this.game.getBallsToRemove(ballsToExplode);
+          } else if (this.ballname === "ball") {
+            if (this.game.targetball === 0) {
+              this.stopTimerStatus = "off";
+            }
+            if (this.id < this.game.targetball) {
+              this.setStopTimer();
+              this.percent = this.percent;
+            } else {
+              this.percent += this.speed;
+            }
+            if (this.percent < 0) {
+              this.percent = 0;
+              this.direction = 1;
+            }
+            let xy;
+            if (this.percent < 25) {
+              let usepercent = this.percent / 24;
+              xy = this.getLineXYatPercent(
+                { x: 460, y: -50 },
+                { x: 450, y: 465 },
+                usepercent
+              );
+            } else if (this.percent < 75) {
+              let usepercent = (this.percent - 25) / 50;
+              xy = this.getCircle1XYatPercent(usepercent);
+            } else if (this.percent < 115) {
+              let usepercent = (this.percent - 75) / 40;
+              xy = this.getCircle2XYatPercent(usepercent);
+            } else if (this.percent < 145) {
+              let usepercent = (this.percent - 115) / 30;
+              xy = this.getCircle3XYatPercent(usepercent);
+            } else if (this.percent < 171) {
+              let usepercent = (this.percent - 145) / 26;
+              xy = this.getCircle4XYatPercent(usepercent);
+            } else if (this.percent < 191) {
+              let usepercent = (this.percent - 171) / 20;
+              xy = this.getCircle5XYatPercent(usepercent);
+            } else {
+              this.game.gameOver("lost");
+            }
+            if (this.percent < 191) {
+              this.pos = [xy.x, xy.y];
+              this.angle = (this.angle || 0) + 1;
+              if (this.angle >= 180) this.angle = 0;
+            }
+          }
+        }
+
+        setStopTimer() {
+          if (this.stopTimerStatus !== "on") {
+            this.stopTimer = 12;
+            this.stopTimerStatus = "on";
+          } else {
+            this.stopTimer--;
+            if (this.stopTimer === 0) {
+              this.stopTimerStatus = "off";
+              this.game.setTargetBall(0);
+            }
+          }
+        }
+
+        remove() {
+          this.game.remove(this);
+          if (this.sprite) {
+            this.sprite.destroy();
+          }
+        }
+      }
+
+      // Ball Class
+      class Ball extends MovingObject {
+        constructor(options) {
+          options.radius = Ball.RADIUS;
+          super(options);
+          this.percent = options.percent ? options.percent - 1 : 0;
+          this.isWrappable = false;
+          this.angle = 0;
+        }
+      }
+      Ball.RADIUS = 20;
+
+      // Fireball Class
+      class Fireball extends MovingObject {
+        constructor(options) {
+          options.radius = Fireball.RADIUS;
+          super(options);
+          this.collided = false;
+          this.isWrappable = false;
+        }
+      }
+      Fireball.RADIUS = 20;
+
+      // Frog Class
+      class Frog {
+        constructor(options) {
+          this.cx = options.x;
+          this.cy = options.y;
+          this.radius = options.radius;
+          this.color = options.color;
+          this.scene = options.scene;
+          this.game = options.game;
+          this.angle = 0;
+          this.nextcolor = "yellow";
+          this.futurecolor = "green";
+          this.sprite = null;
+          this.skullSprite = null;
+          this.nextBallSprite = null;
+          this.futureBallSprite = null;
+          this.calculateAngle = this.calculateAngle.bind(this);
+          this.fireBullet = this.fireBullet.bind(this);
+          this.keepball();
+          this.scene.input.on("pointermove", this.calculateAngle, this);
+          this.scene.input.on("pointerdown", this.fireBullet, this);
+        }
+
+        calculateAngle(pointer) {
+          let vx = pointer.x - this.cx;
+          let vy = pointer.y - this.cy;
+          this.angle = Math.atan2(-vx, vy);
+        }
+
+        draw() {
+          if (!this.sprite) {
+            this.sprite = this.scene.add.sprite(this.cx, this.cy, "frog");
+            this.sprite.setOrigin(0.5);
+            this.sprite.setDisplaySize(150, 130);
+            this.skullSprite = this.scene.add.sprite(
+              this.cx - 160,
+              this.cy - 40,
+              "skull"
+            );
+            this.skullSprite.setOrigin(0.5);
+            this.skullSprite.setDisplaySize(150, 130);
+          }
+          this.sprite.setRotation(this.angle);
+
+          if (!this.nextBallSprite) {
+            this.nextBallSprite = this.scene.add.sprite(
+              this.cx + Math.cos(this.angle) - 20,
+              this.cy + Math.sin(this.angle) + 40,
+              `${this.nextcolor}ball`
+            );
+            this.nextBallSprite.setOrigin(0.5);
+            this.nextBallSprite.setDisplaySize(40, 40);
+          } else {
+            this.nextBallSprite.setPosition(
+              this.cx + Math.cos(this.angle) - 20,
+              this.cy + Math.sin(this.angle) + 40
+            );
+            this.nextBallSprite.setTexture(`${this.nextcolor}ball`);
+          }
+
+          if (!this.futureBallSprite) {
+            this.futureBallSprite = this.scene.add.sprite(
+              this.cx + Math.cos(this.angle),
+              this.cy + Math.sin(this.angle) - 30,
+              `${this.futurecolor}ball`
+            );
+            this.futureBallSprite.setOrigin(0.5);
+            this.futureBallSprite.setDisplaySize(18, 18);
+          } else {
+            this.futureBallSprite.setPosition(
+              this.cx + Math.cos(this.angle),
+              this.cy + Math.sin(this.angle) - 30
+            );
+            this.futureBallSprite.setTexture(`${this.futurecolor}ball`);
+          }
+        }
+
+        futureball() {
+          const colorArray = ["yellow", "green", "blue", "red"];
+          this.futurecolor =
+            colorArray[Math.floor(Math.random() * colorArray.length)];
+        }
+
+        keepball() {
+          this.nextcolor = this.futurecolor;
+          this.futureball();
+        }
+
+        fireBullet(event) {
+          if (this.game.pauseGame) return;
+          this.scene.sound.play("fireballaudio");
+          window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+          const vx = event.x - this.cx;
+          const vy = event.y - this.cy;
+          let distance = Math.sqrt(Math.pow(vx, 2) + Math.pow(vy, 2));
+          let velocity = [vx / distance, vy / distance];
+          const randomColor = this.nextcolor;
+          const fireball = new Fireball({
+            pos: [this.cx, this.cy],
+            vel: velocity,
+            color: randomColor,
+            game: this.game,
+            speed: 10,
+            ballname: "fireball",
+          });
+          this.game.add(fireball);
+          this.keepball();
+        }
+      }
+
+      // Game Class
+      class Game {
+        constructor(scene) {
+          this.scene = scene;
+          this.frog = [];
+          this.balls = [];
+          this.fireball = [];
+          this.setTimerStatus = "off";
+          this.ballsToRemove = [];
+          this.removedBalls = 0;
+          this.won = false;
+          this.finished = false;
+          this.pauseGame = false;
+          this.targetball = 0;
+        }
+
+        add(object) {
+          if (object instanceof Frog) {
+            this.frog.push(object);
+          } else if (object instanceof Fireball) {
+            this.fireball.push(object);
+          } else if (object instanceof Ball) {
+            this.balls.push(object);
+          } else {
+            throw new Error("unknown type of object");
+          }
+        }
+
+        remove(object) {
+          if (object instanceof Fireball) {
+            this.fireball.splice(this.fireball.indexOf(object), 1);
+          } else if (object instanceof Ball) {
+            this.balls.splice(this.balls.indexOf(object), 1);
+          }
+        }
+
+        addFrog() {
+          const frog = new Frog({
+            x: 270,
+            y: 480,
+            radius: 40,
+            color: "black",
+            scene: this.scene,
+            game: this,
+          });
+          this.add(frog);
+          return frog;
+        }
+
+        setTargetBall(ball) {
+          this.targetball = ball;
+        }
+
+        makenewBall(id, pos, color, percent) {
+          let ball = new Ball({
+            game: this,
+            percent: percent,
+            vel: [0, 1],
+            pos: pos,
+            speed: 0.1,
+            color: color,
+            ballname: "ball",
+            id: id,
+          });
+          this.balls.forEach((ba) => {
+            if (ba.id >= id) ba.id++;
+          });
+          let ballPosition = this.findBallById(id - 1);
+          this.balls.splice(ballPosition, 0, ball);
+        }
+
+        findBallById(id) {
+          let ans = 0;
+          this.balls.forEach((ball, index) => {
+            if (ball.id === id) ans = index;
+          });
+          return ans;
+        }
+
+        addBalls(id) {
+          const colorArray = ["yellow", "green", "blue", "red"];
+          const randomColor =
+            colorArray[Math.floor(Math.random() * colorArray.length)];
+          this.add(
+            new Ball({
+              game: this,
+              vel: [0, 1],
+              pos: [460, -50],
+              speed: 0.1,
+              color: randomColor,
+              ballname: "ball",
+              id: id,
+            })
+          );
+        }
+
+        toggleTimerStatus(value) {
+          this.setTimerStatus = value;
+        }
+
+        myLoop(i) {
+          if (this.finished || this.pauseGame) return;
+          if (this.setTimerStatus === "off" && !this.pauseGame) {
+            this.addBalls(i);
+            if (--i) {
+              this.scene.time.delayedCall(450, () => this.myLoop(i), [], this);
+            }
+          } else {
+            this.scene.time.delayedCall(450, () => this.myLoop(i), [], this);
+          }
+        }
+
+        allObjects() {
+          return [].concat(this.frog, this.fireball, this.balls);
+        }
+
+        getBallsToRemove(balls) {
+          this.ballsToRemove = balls;
+        }
+
+        getIdsArray(objects) {
+          let result = [];
+          objects.forEach((object) => result.push(object.id));
+          return result;
+        }
+
+        explodeBalls() {
+          const count = this.ballsToRemove.length;
+          let idArray = this.getIdsArray(this.ballsToRemove);
+          let max = Math.max(...idArray);
+          this.ballsToRemove.forEach((ball) => {
+            this.remove(ball);
+            this.removedBalls++;
+            if (this.balls.length === 0) this.gameOver("won");
+          });
+          this.ballsToRemove = [];
+          this.modifyIds(count, max);
+        }
+
+        modifyIds(count, max) {
+          this.balls.forEach((ball) => {
+            if (ball.id > max) {
+              ball.percent = ball.percent - count;
+              ball.id = ball.id - count;
+            }
+          });
+        }
+
+        gameOver(won) {
+          if (won === "won") this.won = true;
+          this.finished = true;
+          this.scene.scene.pause("mainScene");
+          this.scene.scene.launch("gameOverScene", {
+            won: this.won,
+            ballsLeft: this.balls.length,
+            ballsRemoved: this.removedBalls,
+          });
+        }
+
+        draw() {
+          this.allObjects().forEach((object) => {
+            object.draw(this.scene);
+          });
+        }
+
+        step(delta) {
+          if (!this.pauseGame) {
+            this.moveObjects(delta);
+            this.explodeBalls();
+          }
+        }
+
+        moveObjects(delta) {
+          this.allObjects().forEach((object) => {
+            object.move(delta);
+          });
+        }
+
+        pauseGameFunc() {
+          this.pauseGame = true;
+          document.getElementById("pauseButton").classList.remove("show");
+          document.getElementById("pauseButton").classList.add("hidden");
+          document.getElementById("continueButton").classList.remove("hidden");
+          document.getElementById("continueButton").classList.add("show");
+        }
+
+        continueGameFunc() {
+          this.pauseGame = false;
+          document.getElementById("pauseButton").classList.remove("hidden");
+          document.getElementById("pauseButton").classList.add("show");
+          document.getElementById("continueButton").classList.remove("show");
+          document.getElementById("continueButton").classList.add("hidden");
+        }
+      }
+
+      // Phaser Game Configuration
+      const config = {
+        type: Phaser.AUTO,
+        width: 540,
+        height: 960,
+        parent: "game-container",
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+        },
+        scene: [
+          {
+            key: "mainScene",
+            preload: function () {
+              this.load.image(
+                "background",
+                "https://s26.postimg.cc/5h6eipprd/spiral_for_Aakash2.png"
+              );
+              this.load.image(
+                "frog",
+                "https://s26.postimg.cc/6c165she1/frog.png"
+              );
+              this.load.image(
+                "skull",
+                "https://s26.postimg.cc/6c165she1/skull.png"
+              );
+              this.load.image(
+                "greenball",
+                "https://s26.postimg.cc/fl2vwj1mh/greenball.png"
+              );
+              this.load.image(
+                "yellowball",
+                "https://s26.postimg.cc/if61a18yh/yellowball.png"
+              );
+              this.load.image(
+                "blueball",
+                "https://s26.postimg.cc/xb4khn7ih/blueball.jpg"
+              );
+              this.load.image(
+                "redball",
+                "https://s26.postimg.cc/6c165she1/redball.jpg"
+              );
+              this.load.audio(
+                "backgroundaudio",
+                "https://rawcdn.githack.com/SkyisAakash/Zuma/185d16abd211142fe3dab763a657611240690da2/tracks/background.mp3"
+              );
+              this.load.audio(
+                "fireballaudio",
+                "https://rawcdn.githack.com/SkyisAakash/Zuma/185d16abd211142fe3dab763a657611240690da2/tracks/fireball.mp3"
+              );
+            },
+            create: function () {
+              this.add.image(270, 480, "background").setDisplaySize(540, 960);
+              this.sound.play("backgroundaudio", { loop: true });
+              this.gameInstance = new Game(this);
+              this.gameInstance.addFrog();
+              this.gameInstance.myLoop(30);
+              window.FarcadeSDK.singlePlayer.actions.ready();
+              window.FarcadeSDK.singlePlayer.actions.hapticFeedback();
+            },
+            update: function (time, delta) {
+              this.gameInstance.step(delta);
+              this.gameInstance.draw();
+            },
+          },
+          {
+            key: "gameOverScene",
+            create: function (data) {
+              this.add.rectangle(270, 480, 540, 960, 0x000000, 0.7);
+              let text1, text2;
+              if (!data.won) {
+                text1 = `You lost by ${data.ballsLeft} balls`;
+                text2 = `But hey, you got ${data.ballsRemoved} balls`;
+              } else {
+                text1 = `Yaay, You won!`;
+                text2 = "";
+              }
+              this.add
+                .text(270, 50, text1, {
+                  font: "900 50px Arial",
+                  color: "#ffbf00",
+                  align: "center",
+                })
+                .setOrigin(0.5)
+                .setShadow(1, 1, "black", 24);
+              this.add
+                .text(270, 150, text2, {
+                  font: "900 50px Arial",
+                  color: "#ffbf00",
+                  align: "center",
+                })
+                .setOrigin(0.5)
+                .setShadow(1, 1, "black", 24);
+              window.FarcadeSDK.singlePlayer.actions.gameOver({
+                score: data.ballsRemoved,
+              });
+            },
+          },
+        ],
+        audio: {
+          disableWebAudio: false,
+        },
+      };
+
+      // Initialize Game
+      let game = new Phaser.Game(config);
+      let started = false;
+
+      // DOM Event Listeners
+      document.getElementById("startGame").addEventListener("click", () => {
+        started = true;
+        document.getElementById("canvasdiv").classList.remove("hidden");
+        document.getElementById("canvasdiv").classList.add("show");
+        document.getElementById("aboutdiv").classList.remove("show");
+        document.getElementById("aboutdiv").classList.add("hidden");
+        document.getElementById("pauseButton").classList.remove("hidden");
+        document.getElementById("pauseButton").classList.add("show");
+        document.getElementById("audio").play();
+        if (game.scene.getScene("mainScene").gameInstance.finished) {
+          game.scene.stop("mainScene");
+          game.scene.start("mainScene");
+        } else if (game.scene.getScene("mainScene").gameInstance.pauseGame) {
+          game.scene.getScene("mainScene").gameInstance.continueGameFunc();
+        } else {
+          game.scene.start("mainScene");
+        }
+      });
+
+      document.getElementById("about").addEventListener("click", () => {
+        document.getElementById("canvasdiv").classList.remove("show");
+        document.getElementById("canvasdiv").classList.add("hidden");
+        document.getElementById("aboutdiv").classList.remove("hidden");
+        document.getElementById("aboutdiv").classList.add("show");
+        document.getElementById("pauseButton").classList.remove("show");
+        document.getElementById("pauseButton").classList.add("hidden");
+        document.getElementById("continueButton").classList.remove("show");
+        document.getElementById("continueButton").classList.add("hidden");
+        if (started) {
+          game.scene.getScene("mainScene").gameInstance.pauseGameFunc();
+        }
+      });
+
+      document.getElementById("pauseButton").addEventListener("click", () => {
+        game.scene.getScene("mainScene").gameInstance.pauseGameFunc();
+      });
+
+      document.getElementById("continueButton").addEventListener("click", () => {
+        game.scene.getScene("mainScene").gameInstance.continueGameFunc();
+      });
+
+      document.getElementById("speakeron").addEventListener("click", () => {
+        document.getElementById("speakeron").classList.remove("show");
+        document.getElementById("speakeron").classList.add("hidden");
+        document.getElementById("mutedspeaker").classList.remove("hidden");
+        document.getElementById("mutedspeaker").classList.add("show");
+        document.getElementById("audio").muted = true;
+        document.getElementById("fireballaudio").muted = true;
+        game.sound.mute = true;
+      });
+
+      document.getElementById("mutedspeaker").addEventListener("click", () => {
+        document.getElementById("mutedspeaker").classList.remove("show");
+        document.getElementById("mutedspeaker").classList.add("hidden");
+        document.getElementById("speakeron").classList.remove("hidden");
+        document.getElementById("speakeron").classList.add("show");
+        document.getElementById("audio").muted = false;
+        document.getElementById("fireballaudio").muted = false;
+        game.sound.mute = false;
+      });
+
+      window.FarcadeSDK.on("play_again", () => {
+        game.scene.stop("gameOverScene");
+        game.scene.stop("mainScene");
+        game.scene.start("mainScene");
+        document.getElementById("pauseButton").classList.remove("hidden");
+        document.getElementById("pauseButton").classList.add("show");
+      });
+
+      window.FarcadeSDK.on("toggle_mute", (data) => {
+        if (data.isMuted) {
+          document.getElementById("speakeron").classList.remove("show");
+          document.getElementById("speakeron").classList.add("hidden");
+          document.getElementById("mutedspeaker").classList.remove("hidden");
+          document.getElementById("mutedspeaker").classList.add("show");
+          document.getElementById("audio").muted = true;
+          document.getElementById("fireballaudio").muted = true;
+          game.sound.mute = true;
+        } else {
+          document.getElementById("mutedspeaker").classList.remove("show");
+          document.getElementById("mutedspeaker").classList.add("hidden");
+          document.getElementById("speakeron").classList.remove("hidden");
+          document.getElementById("speakeron").classList.add("show");
+          document.getElementById("audio").muted = false;
+          document.getElementById("fireballaudio").muted = false;
+          game.sound.mute = false;
+        }
+      });
+    </script>
+  </body>
+</html>
